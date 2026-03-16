@@ -7,7 +7,7 @@ import { CustomUrlCard } from './components/CustomUrlCard';
 import { SuccessOverlay } from './components/SuccessOverlay';
 
 export default function App() {
-  const { config, isDemo, writeSelections } = useUrlState();
+  const { config, isDemo, loading, writeSelections } = useUrlState();
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [notionDark, setNotionDark] = useState(false);
@@ -25,6 +25,16 @@ export default function App() {
   function handleConfirm() {
     writeSelections(selections);
     setShowSuccess(true);
+  }
+
+  if (loading) {
+    return (
+      <div className={appDark ? 'dark' : ''}>
+        <div className="h-screen flex items-center justify-center bg-stone-50 dark:bg-neutral-950 text-stone-500 dark:text-neutral-400">
+          Loading configuration...
+        </div>
+      </div>
+    );
   }
 
   if (!currentPage) return null;

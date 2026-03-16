@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type { PreviewConfig, SelectionsOutput } from '../types';
 import { decodeConfig, encodeSelections } from '../utils/urlEncoding';
 
@@ -30,21 +30,44 @@ const DEMO_CONFIG: PreviewConfig = {
 };
 
 export function useUrlState() {
-  const config = useMemo<PreviewConfig>(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const configParam = params.get('config');
-      if (!configParam) return DEMO_CONFIG;
-      const decoded = decodeConfig(configParam);
-      return decoded ?? DEMO_CONFIG;
-    } catch {
-      return DEMO_CONFIG;
-    }
-  }, []);
+  const [config, setConfig] = useState<PreviewConfig>(DEMO_CONFIG);
+  const [isDemo, setIsDemo] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const isDemo = useMemo(() => {
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    return !params.get('config');
+
+    // Path 1: ?id= — fetch config from Supabase via API
+    const configId = params.get('id');
+    if (configId) {
+      setIsDemo(false);
+      fetch(`/api/config/${encodeURIComponent(configId)}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Not found');
+          return res.json();
+        })
+        .then((data) => {
+          if (data.config) setConfig(data.config);
+        })
+        .catch(() => {
+          setConfig(DEMO_CONFIG);
+          setIsDemo(true);
+        })
+        .finally(() => setLoading(false));
+      return;
+    }
+
+    // Path 2: ?config= — inline base64 config (small payloads)
+    const configParam = params.get('config');
+    if (configParam) {
+      const decoded = decodeConfig(configParam);
+      if (decoded) {
+        setConfig(decoded);
+        setIsDemo(false);
+      }
+    }
+
+    setLoading(false);
   }, []);
 
   function writeSelections(selections: Record<string, string>): void {
@@ -56,5 +79,5 @@ export function useUrlState() {
     window.location.hash = `selections=${encoded}`;
   }
 
-  return { config, isDemo, writeSelections };
+  return { config, isDemo, loading, writeSelections };
 }
