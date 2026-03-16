@@ -22,9 +22,13 @@ export default function App() {
     setSelections((prev) => ({ ...prev, [pageId]: url }));
   }
 
-  function handleConfirm() {
-    writeSelections(selections);
-    setShowSuccess(true);
+  const [saving, setSaving] = useState(false);
+
+  async function handleConfirm() {
+    setSaving(true);
+    const ok = await writeSelections(selections);
+    setSaving(false);
+    if (ok) setShowSuccess(true);
   }
 
   if (loading) {
@@ -50,6 +54,7 @@ export default function App() {
           notionDark={notionDark}
           appDark={appDark}
           allSelected={allSelected}
+          saving={saving}
           onToggleNotionDark={() => setNotionDark((v) => !v)}
           onToggleAppDark={() => setAppDark((v) => !v)}
           onConfirm={handleConfirm}

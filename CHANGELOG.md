@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here.
 Format: [Semantic Versioning](https://semver.org/)
 
+## [0.3.0] - 2026-03-17
+
+### Changed
+- Selections now written to Supabase via PATCH /api/config/[id] instead of URL hash
+- Manus reads selections by polling GET /api/config/[id] instead of reading URL hash
+- URL hash fallback retained only for ?config= (inline base64) path
+- GET /api/config/[id] now returns both config and selections
+- Added `selections_json` column to cover_configs table
+- Confirm button shows "Saving..." state during API write
+- Updated CLAUDE.md to reflect API-based handoff
+
 ## [0.2.0] - 2026-03-16
 
 ### Changed

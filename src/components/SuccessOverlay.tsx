@@ -26,7 +26,7 @@ export function SuccessOverlay({ pages, selections, onDismiss }: SuccessOverlayP
             Selections Confirmed
           </h2>
           <p className="text-sm text-stone-500 dark:text-neutral-400 mt-1">
-            Manus can now read your selections from the URL.
+            Your selections have been saved. Manus will pick them up automatically.
           </p>
         </div>
 

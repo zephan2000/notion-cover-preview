@@ -31,6 +31,7 @@ const DEMO_CONFIG: PreviewConfig = {
 
 export function useUrlState() {
   const [config, setConfig] = useState<PreviewConfig>(DEMO_CONFIG);
+  const [configId, setConfigId] = useState<string | null>(null);
   const [isDemo, setIsDemo] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -38,10 +39,11 @@ export function useUrlState() {
     const params = new URLSearchParams(window.location.search);
 
     // Path 1: ?id= — fetch config from Supabase via API
-    const configId = params.get('id');
-    if (configId) {
+    const id = params.get('id');
+    if (id) {
+      setConfigId(id);
       setIsDemo(false);
-      fetch(`/api/config/${encodeURIComponent(configId)}`)
+      fetch(`/api/config/${encodeURIComponent(id)}`)
         .then((res) => {
           if (!res.ok) throw new Error('Not found');
           return res.json();
@@ -52,6 +54,7 @@ export function useUrlState() {
         .catch(() => {
           setConfig(DEMO_CONFIG);
           setIsDemo(true);
+          setConfigId(null);
         })
         .finally(() => setLoading(false));
       return;
@@ -70,14 +73,30 @@ export function useUrlState() {
     setLoading(false);
   }, []);
 
-  function writeSelections(selections: Record<string, string>): void {
-    const output: SelectionsOutput = {
-      selections,
-      confirmed_at: new Date().toISOString(),
-    };
+  async function writeSelections(selections: Record<string, string>): Promise<boolean> {
+    const confirmedAt = new Date().toISOString();
+
+    // If we have a config ID, write selections to Supabase via API
+    if (configId) {
+      try {
+        const res = await fetch(`/api/config/${encodeURIComponent(configId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selections, confirmed_at: confirmedAt }),
+        });
+        if (!res.ok) throw new Error('Failed to save');
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // Fallback: write to URL hash (for ?config= or demo mode)
+    const output: SelectionsOutput = { selections, confirmed_at: confirmedAt };
     const encoded = encodeSelections(output);
     window.location.hash = `selections=${encoded}`;
+    return true;
   }
 
-  return { config, isDemo, loading, writeSelections };
+  return { config, configId, isDemo, loading, writeSelections };
 }

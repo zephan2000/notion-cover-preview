@@ -8,6 +8,7 @@ interface TopBarProps {
   notionDark: boolean;
   appDark: boolean;
   allSelected: boolean;
+  saving: boolean;
   onToggleNotionDark: () => void;
   onToggleAppDark: () => void;
   onConfirm: () => void;
@@ -21,6 +22,7 @@ export function TopBar({
   notionDark,
   appDark,
   allSelected,
+  saving,
   onToggleNotionDark,
   onToggleAppDark,
   onConfirm,
@@ -89,10 +91,10 @@ export function TopBar({
         <button
           type="button"
           onClick={onConfirm}
-          disabled={!allSelected}
+          disabled={!allSelected || saving}
           className="px-4 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          Confirm Selections
+          {saving ? 'Saving...' : 'Confirm Selections'}
         </button>
       </div>
     </header>

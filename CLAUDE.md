@@ -8,17 +8,13 @@ their selections, and return those selections to Manus via URL hash.
 
 ## Critical architectural constraints
 
-### URL hash handoff — do not change this pattern
-Manus reads selections from `window.location.hash` after the user confirms.
-This is the ONLY reliable handoff mechanism in Manus's sandboxed browser.
-Never replace this with:
-- localStorage or sessionStorage
-- cookies
-- postMessage
-- WebSockets
+### Selection handoff via Supabase API
+When using the `?id=` path, user selections are written back to Supabase via
+`PATCH /api/config/[id]`. Manus reads selections by polling `GET /api/config/[id]`
+and checking the `selections` field in the response.
 
-The selections are written to hash as: `#selections=[base64-encoded JSON]`
-Manus strips the prefix, decodes, and parses.
+For the `?config=` fallback path, selections are still written to the URL hash
+as `#selections=[base64-encoded JSON]`.
 
 ### Deployment: Vercel
 The frontend is a static Vite build. Vercel serverless functions in `/api`
@@ -34,8 +30,8 @@ handle config storage via Supabase. No other backend infrastructure.
 ### Config storage: Supabase
 Configs are stored in `public.cover_configs` table in the shared Supabase
 instance (same as pergroup-web). Rows auto-expire after 1 hour via pg_cron.
-- Anon key: used for reads (GET /api/config/[id])
-- Service role key: used for writes (POST /api/config)
+- Service role key: used for all API operations (POST, GET, PATCH)
+- Table has `config_json` (input) and `selections_json` (output) columns
 
 ### Image loading
 All images load via <img> tags from external CDNs (Unsplash, Pexels).
@@ -50,7 +46,7 @@ Never use canvas, fetch, or blob URLs for images — CORS will block them.
 ## Manus integration notes
 - Preferred: Manus POSTs config to /api/config, gets ID, opens /?id=[id]
 - Fallback: Manus encodes config as base64, opens /?config=[base64]
-- Manus reads output via: window.location.hash after user confirms
+- Manus reads output via: GET /api/config/[id] — polls until `selections` is non-null
 - Demo mode activates automatically when neither param is present
 - The app must never require user login or any external service
 
