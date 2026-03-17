@@ -8,7 +8,7 @@ export type CoverImage = {
   seed: string;
 };
 
-export type AppMode = 'browse' | 'refine' | 'finalized';
+export type AppMode = 'browse' | 'refine' | 'finalized' | 'regenerated';
 
 export type AppState = {
   mode: AppMode;

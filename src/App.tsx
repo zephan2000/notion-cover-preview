@@ -6,6 +6,7 @@ import { SelectionDock } from './components/SelectionDock';
 import { RefineModeBar } from './components/RefineModeBar';
 import { ComparisonView } from './components/ComparisonView';
 import { FinalizeView } from './components/FinalizeView';
+import { RegenerateConfirmView } from './components/RegenerateConfirmView';
 import { JsonOutput } from './components/JsonOutput';
 import {
   imageCandidatesToCoverImages,
@@ -177,24 +178,9 @@ function reducer(state: AppState, action: AppAction): AppState {
         regenerate_count: regenerateCount,
       };
 
-      const newImages = state.images.map(img => {
-        if (state.lockedIds.includes(img.id)) return img;
-        const newSeed = `${img.seed}_r${Date.now().toString(36)}${Math.random()
-          .toString(36)
-          .slice(2, 5)}`;
-        return {
-          ...img,
-          id: newSeed,
-          seed: newSeed,
-          url: `https://picsum.photos/seed/${newSeed}/${img.width}/${img.height}`,
-        };
-      });
-
       return {
         ...state,
-        images: newImages,
-        mode: 'browse',
-        lockedIds: [],
+        mode: 'regenerated',
         regeneratePayload: payload,
       };
     }
@@ -303,6 +289,26 @@ export default function App() {
     }
   };
 
+  const handleRegenerate = async () => {
+    if (!state.regeneratePayload) return;
+    dispatch({ type: 'SET_SAVING', saving: true });
+
+    if (isDemo) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      dispatch({ type: 'SET_SAVED' });
+    } else {
+      const ok = await writeSelections(
+        state.regeneratePayload as Record<string, string>,
+        undefined,
+      );
+      if (ok) {
+        dispatch({ type: 'SET_SAVED' });
+      } else {
+        dispatch({ type: 'SET_SAVING', saving: false });
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground text-sm">
@@ -316,6 +322,10 @@ export default function App() {
 
   if (state.mode === 'finalized') {
     return <FinalizeView state={state} dispatch={dispatch} onConfirm={handleConfirm} />;
+  }
+
+  if (state.mode === 'regenerated') {
+    return <RegenerateConfirmView state={state} dispatch={dispatch} onConfirm={handleRegenerate} />;
   }
 
   return (
