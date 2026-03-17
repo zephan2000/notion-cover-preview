@@ -48,7 +48,8 @@ export type AppAction =
   | { type: 'SET_SAVING'; saving: boolean }
   | { type: 'SET_SAVED' }
   | { type: 'EDIT_SELECTIONS' }
-  | { type: 'RESET' };
+  | { type: 'RESET' }
+  | { type: 'INIT_CONFIG'; images: CoverImage[]; pages: import('../types').PageConfig[]; workspaceName: string; isDemo: boolean };
 
 /**
  * Convert ImageCandidate[] from the API config into CoverImage[].

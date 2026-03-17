@@ -234,6 +234,27 @@ function reducer(state: AppState, action: AppAction): AppState {
         saved: false,
       };
 
+    case 'INIT_CONFIG':
+      return {
+        ...state,
+        images: action.images,
+        pages: action.pages,
+        workspaceName: action.workspaceName,
+        isDemo: action.isDemo,
+        selectedIds: new Array(action.pages.length).fill(null),
+        repositionData: {},
+        lockedIds: [],
+        previewSlots: [null, null],
+        previewPageIndex: 0,
+        abCandidates: {},
+        showPreview: false,
+        disclaimerDismissed: false,
+        regeneratePayload: null,
+        saving: false,
+        saved: false,
+        mode: 'browse',
+      };
+
     default:
       return state;
   }
@@ -243,35 +264,29 @@ export default function App() {
   const { config, isDemo, loading, writeSelections } = useUrlState();
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
 
-  // Initialize state when config loads
+  // Initialize reducer state when config loads
   useEffect(() => {
     if (!loading && config) {
-      dispatch({ type: 'RESET' });
+      dispatch({
+        type: 'INIT_CONFIG',
+        images: imageCandidatesToCoverImages(config.image_pool),
+        pages: config.pages,
+        workspaceName: config.workspace_name,
+        isDemo,
+      });
     }
-  }, [loading, config]);
-
-  // Derive appState by overlaying config onto reducer state
-  const appState: AppState = {
-    ...state,
-    images: imageCandidatesToCoverImages(config.image_pool),
-    pages: config.pages,
-    workspaceName: config.workspace_name,
-    selectedIds: state.selectedIds.length === config.pages.length
-      ? state.selectedIds
-      : new Array(config.pages.length).fill(null),
-    isDemo,
-  };
+  }, [loading, config, isDemo]);
 
   const handleConfirm = async () => {
     dispatch({ type: 'SET_SAVING', saving: true });
-    const selections = selectedIdsToSelections(appState.selectedIds, appState.pages);
+    const selections = selectedIdsToSelections(state.selectedIds, state.pages);
 
     // Build repositions: map pageId → {x, y} for pages that have repositioned images
     const repositions: Record<string, { x: number; y: number }> = {};
-    for (let i = 0; i < appState.pages.length; i++) {
-      const imageId = appState.selectedIds[i];
-      if (imageId && appState.repositionData[imageId]) {
-        repositions[appState.pages[i].id] = appState.repositionData[imageId];
+    for (let i = 0; i < state.pages.length; i++) {
+      const imageId = state.selectedIds[i];
+      if (imageId && state.repositionData[imageId]) {
+        repositions[state.pages[i].id] = state.repositionData[imageId];
       }
     }
 
@@ -299,15 +314,15 @@ export default function App() {
     );
   }
 
-  if (appState.mode === 'finalized') {
-    return <FinalizeView state={appState} dispatch={dispatch} onConfirm={handleConfirm} />;
+  if (state.mode === 'finalized') {
+    return <FinalizeView state={state} dispatch={dispatch} onConfirm={handleConfirm} />;
   }
 
   return (
     <div className="min-h-screen bg-background no-scrollbar overflow-y-auto relative">
       {/* Hero text — fades after first selection */}
       <AnimatePresence>
-        {appState.selectedIds.every(id => id === null) && appState.mode === 'browse' && (
+        {state.selectedIds.every(id => id === null) && state.mode === 'browse' && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -315,7 +330,7 @@ export default function App() {
             className="pt-16 pb-8 text-center"
           >
             <h1 className="text-3xl font-light tracking-tight text-foreground/60">
-              Covers for <span className="text-foreground font-normal">{appState.workspaceName}</span>
+              Covers for <span className="text-foreground font-normal">{state.workspaceName}</span>
             </h1>
             {isDemo && (
               <p className="text-xs text-muted-foreground mt-2">Demo mode — no data will be saved</p>
@@ -327,15 +342,15 @@ export default function App() {
       {/* Grid */}
       <div
         className={`px-6 ${
-          appState.selectedIds.some(id => id !== null) || appState.mode !== 'browse' ? 'pt-8' : ''
+          state.selectedIds.some(id => id !== null) || state.mode !== 'browse' ? 'pt-8' : ''
         } pb-32`}
       >
-        <ImageGrid state={appState} dispatch={dispatch} />
+        <ImageGrid state={state} dispatch={dispatch} />
       </div>
 
       {/* Regenerate result toast */}
       <AnimatePresence>
-        {appState.regeneratePayload && (
+        {state.regeneratePayload && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -343,24 +358,24 @@ export default function App() {
             className="fixed top-6 right-6 w-96 z-50 cursor-pointer"
             onClick={() => dispatch({ type: 'DISMISS_REGENERATE' })}
           >
-            <JsonOutput data={appState.regeneratePayload} />
+            <JsonOutput data={state.regeneratePayload} />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Bottom bar */}
       <AnimatePresence mode="wait">
-        {appState.mode === 'refine' ? (
-          <RefineModeBar key="refine" state={appState} dispatch={dispatch} />
+        {state.mode === 'refine' ? (
+          <RefineModeBar key="refine" state={state} dispatch={dispatch} />
         ) : (
-          <SelectionDock key="dock" state={appState} dispatch={dispatch} />
+          <SelectionDock key="dock" state={state} dispatch={dispatch} />
         )}
       </AnimatePresence>
 
       {/* Preview / Comparison overlay */}
       <AnimatePresence>
-        {appState.showPreview && (
-          <ComparisonView state={appState} dispatch={dispatch} />
+        {state.showPreview && (
+          <ComparisonView state={state} dispatch={dispatch} />
         )}
       </AnimatePresence>
     </div>
