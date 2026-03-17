@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { PreviewConfig, SelectionsOutput } from '../types';
-import { decodeConfig, encodeSelections } from '../utils/urlEncoding';
+import type { PreviewConfig } from '../types';
+import { decodeConfig } from '../utils/urlEncoding';
 
 const DEMO_CONFIG: PreviewConfig = {
   workspace_name: 'Nami Matcha (Demo)',
@@ -28,6 +28,21 @@ const DEMO_CONFIG: PreviewConfig = {
     },
   ],
 };
+
+async function registerConfig(config: PreviewConfig): Promise<string | null> {
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function useUrlState() {
   const [config, setConfig] = useState<PreviewConfig>(DEMO_CONFIG);
@@ -60,13 +75,28 @@ export function useUrlState() {
       return;
     }
 
-    // Path 2: ?config= — inline base64 config (small payloads)
+    // Path 2: ?config= — decode inline base64, then auto-register with Supabase
     const configParam = params.get('config');
     if (configParam) {
       const decoded = decodeConfig(configParam);
       if (decoded) {
         setConfig(decoded);
         setIsDemo(false);
+
+        // Auto-register: POST config to Supabase, get an ID, replace URL
+        registerConfig(decoded).then((newId) => {
+          if (newId) {
+            setConfigId(newId);
+            // Replace ?config=base64 with ?id=newId so Manus can see the ID
+            const url = new URL(window.location.href);
+            url.searchParams.delete('config');
+            url.searchParams.set('id', newId);
+            url.hash = '';
+            window.history.replaceState({}, '', url.toString());
+          }
+          setLoading(false);
+        });
+        return;
       }
     }
 
@@ -76,7 +106,6 @@ export function useUrlState() {
   async function writeSelections(selections: Record<string, string>): Promise<boolean> {
     const confirmedAt = new Date().toISOString();
 
-    // If we have a config ID, write selections to Supabase via API
     if (configId) {
       try {
         const res = await fetch(`/api/config/${encodeURIComponent(configId)}`, {
@@ -91,11 +120,7 @@ export function useUrlState() {
       }
     }
 
-    // Fallback: write to URL hash (for ?config= or demo mode)
-    const output: SelectionsOutput = { selections, confirmed_at: confirmedAt };
-    const encoded = encodeSelections(output);
-    window.location.hash = `selections=${encoded}`;
-    return true;
+    return false;
   }
 
   return { config, configId, isDemo, loading, writeSelections };
