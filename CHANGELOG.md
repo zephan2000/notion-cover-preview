@@ -3,6 +3,12 @@
 All notable changes to this project will be documented here.
 Format: [Semantic Versioning](https://semver.org/)
 
+## [2.2.2] - 2026-03-18
+
+### Fixed
+- Selections not working: reducer state was never initialized with config data — added INIT_CONFIG action to properly set images, pages, and selectedIds inside the reducer on config load
+- Demo data switched to picsum.photos seeds matching vibe-weave-select reference (20 images, 5 pages)
+
 ## [2.2.0] - 2026-03-18
 
 ### Changed — Complete frontend port from vibe-weave-select reference
