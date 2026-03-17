@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // PATCH — write selections
     if (req.method === 'PATCH') {
-      const { selections, confirmed_at } = req.body;
+      const { selections, repositions, confirmed_at } = req.body;
 
       if (!selections || typeof selections !== 'object') {
         return res.status(400).json({ error: 'Invalid selections payload' });
@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { error } = await supabase
         .from('cover_configs')
         .update({
-          selections_json: { selections, confirmed_at },
+          selections_json: { selections, repositions, confirmed_at },
         })
         .eq('id', id);
 
