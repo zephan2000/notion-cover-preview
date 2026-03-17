@@ -1,28 +1,49 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useUrlState } from './hooks/useUrlState';
 import { TopBar } from './components/TopBar';
-import { Sidebar } from './components/Sidebar';
-import { OptionCard } from './components/OptionCard';
-import { CustomUrlCard } from './components/CustomUrlCard';
+import { ImageGrid } from './components/ImageGrid';
+import { AssignModal } from './components/AssignModal';
+import { ReviewPanel } from './components/ReviewPanel';
 import { SuccessOverlay } from './components/SuccessOverlay';
 
 export default function App() {
   const { config, isDemo, loading, writeSelections } = useUrlState();
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string>>({});
-  const [notionDark, setNotionDark] = useState(false);
-  const [appDark, setAppDark] = useState(false);
+  const [mode, setMode] = useState<'browse' | 'review'>('browse');
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [notionDark, setNotionDark] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
-  const currentPage = config.pages[currentPageIndex];
   const allSelected = config.pages.every((p) => !!selections[p.id]);
-  const currentSelection = currentPage ? selections[currentPage.id] : undefined;
 
-  function handleSelect(pageId: string, url: string) {
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    for (const img of config.image_pool) {
+      for (const tag of img.tags) tags.add(tag);
+    }
+    return Array.from(tags).sort();
+  }, [config.image_pool]);
+
+  function handleAssign(pageId: string, url: string) {
     setSelections((prev) => ({ ...prev, [pageId]: url }));
   }
 
-  const [saving, setSaving] = useState(false);
+  function handlePageChipClick(pageId: string) {
+    const currentUrl = selections[pageId];
+    if (currentUrl) {
+      // Page has an image — open it in the modal
+      setSelectedImageUrl(currentUrl);
+    } else {
+      // Page has no image — switch to browse mode
+      setMode('browse');
+    }
+  }
+
+  function handleChangeCover(_pageId: string) {
+    setMode('browse');
+  }
 
   async function handleConfirm() {
     setSaving(true);
@@ -33,91 +54,63 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className={appDark ? 'dark' : ''}>
-        <div className="h-screen flex items-center justify-center bg-stone-50 dark:bg-neutral-950 text-stone-500 dark:text-neutral-400">
-          Loading configuration...
+      <div className="dark">
+        <div className="h-screen flex items-center justify-center bg-linear-bg text-linear-text-muted text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            Loading...
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!currentPage) return null;
-
   return (
-    <div className={appDark ? 'dark' : ''}>
-      <div className="h-screen flex flex-col bg-stone-50 dark:bg-neutral-950 text-stone-800 dark:text-neutral-100">
+    <div className="dark">
+      <div className="h-screen flex flex-col bg-linear-bg text-linear-text-primary font-sans">
         <TopBar
           workspaceName={config.workspace_name}
           isDemo={isDemo}
           pages={config.pages}
           selections={selections}
+          mode={mode}
           notionDark={notionDark}
-          appDark={appDark}
           allSelected={allSelected}
           saving={saving}
           onToggleNotionDark={() => setNotionDark((v) => !v)}
-          onToggleAppDark={() => setAppDark((v) => !v)}
+          onToggleMode={() => setMode((m) => m === 'browse' ? 'review' : 'browse')}
           onConfirm={handleConfirm}
+          onPageChipClick={handlePageChipClick}
         />
 
-        <div className="flex flex-1 min-h-0">
-          <Sidebar
-            pages={config.pages}
-            currentIndex={currentPageIndex}
+        {mode === 'browse' ? (
+          <ImageGrid
+            images={config.image_pool}
             selections={selections}
-            onPageClick={setCurrentPageIndex}
+            pages={config.pages}
+            activeTag={activeTag}
+            allTags={allTags}
+            onTagFilter={setActiveTag}
+            onImageClick={setSelectedImageUrl}
           />
+        ) : (
+          <ReviewPanel
+            pages={config.pages}
+            selections={selections}
+            notionDark={notionDark}
+            onChangeCover={handleChangeCover}
+          />
+        )}
 
-          <main className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-xl font-bold mb-1">
-                {currentPage.icon} {currentPage.name}
-              </h2>
-              <p className="text-sm text-stone-500 dark:text-neutral-400 mb-6">
-                Choose a cover image for this page
-              </p>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                <OptionCard
-                  label="Option A"
-                  imageUrl={currentPage.option_a}
-                  pageIcon={currentPage.icon}
-                  pageTitle={currentPage.name}
-                  notionDark={notionDark}
-                  isSelected={currentSelection === currentPage.option_a}
-                  onSelect={() => handleSelect(currentPage.id, currentPage.option_a)}
-                />
-                <OptionCard
-                  label="Option B"
-                  imageUrl={currentPage.option_b}
-                  pageIcon={currentPage.icon}
-                  pageTitle={currentPage.name}
-                  notionDark={notionDark}
-                  isSelected={currentSelection === currentPage.option_b}
-                  onSelect={() => handleSelect(currentPage.id, currentPage.option_b)}
-                />
-              </div>
-
-              <CustomUrlCard
-                pageIcon={currentPage.icon}
-                pageTitle={currentPage.name}
-                notionDark={notionDark}
-                isSelected={
-                  !!currentSelection &&
-                  currentSelection !== currentPage.option_a &&
-                  currentSelection !== currentPage.option_b
-                }
-                selectedUrl={
-                  currentSelection !== currentPage.option_a &&
-                  currentSelection !== currentPage.option_b
-                    ? currentSelection || ''
-                    : ''
-                }
-                onSelect={(url) => handleSelect(currentPage.id, url)}
-              />
-            </div>
-          </main>
-        </div>
+        {selectedImageUrl && (
+          <AssignModal
+            imageUrl={selectedImageUrl}
+            pages={config.pages}
+            selections={selections}
+            onAssign={handleAssign}
+            onClose={() => setSelectedImageUrl(null)}
+          />
+        )}
 
         {showSuccess && (
           <SuccessOverlay

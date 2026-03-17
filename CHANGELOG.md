@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here.
 Format: [Semantic Versioning](https://semver.org/)
 
+## [1.0.0] - 2026-03-17
+
+### Changed — Cover Studio redesign
+- **New image pool model**: Manus sends 15-20 candidate images as a pool; users assign images to pages (replaces Option A/B per-page model)
+- **Linear-inspired design**: Dark-first UI with layered surfaces, Inter font, indigo-violet accent, subtle animations
+- **New components**: ImageGrid (filterable masonry), ImageCard (hover preview + assigned badge), AssignModal (NotionMock preview + page buttons), PageChip (status pill), ReviewPanel (side-by-side NotionMock review)
+- **Two modes**: Browse (image pool grid) and Review (assigned covers as NotionMock cards)
+- **Tag filtering**: Images tagged by Manus; users filter pool by tag
+- **Removed**: OptionCard, CustomUrlCard, Sidebar — replaced by pool-based browsing
+- **Updated types**: PreviewConfig now has `image_pool: ImageCandidate[]` instead of `option_a/option_b` per page
+
 ## [0.3.0] - 2026-03-17
 
 ### Changed

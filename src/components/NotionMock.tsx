@@ -14,17 +14,18 @@ export function NotionMock({ imageUrl, pageIcon, pageTitle, notionDark }: Notion
   const bg = notionDark ? 'bg-[#191919]' : 'bg-white';
   const textColor = notionDark ? 'text-[#e6e3dc]' : 'text-[#37352f]';
   const subtextColor = notionDark ? 'text-[#9b9a97]' : 'text-[#787774]';
+  const chipBg = notionDark ? 'bg-[#2f2f2f]' : 'bg-[#f1f1ef]';
 
   return (
-    <div className={`${bg} rounded-md overflow-hidden shadow-sm border ${notionDark ? 'border-neutral-700' : 'border-stone-200'}`}>
+    <div className={`${bg} rounded-lg overflow-hidden`}>
       {/* Cover banner */}
       <div className="relative" style={{ aspectRatio: '16 / 3.2' }}>
         {!loaded && !error && (
-          <div className={`absolute inset-0 ${notionDark ? 'bg-neutral-800' : 'bg-stone-200'} animate-pulse`} />
+          <div className={`absolute inset-0 ${notionDark ? 'bg-[#2a2a2a]' : 'bg-stone-200'} animate-pulse`} />
         )}
         {error ? (
-          <div className="absolute inset-0 bg-red-100 flex items-center justify-center">
-            <span className="text-red-600 text-sm font-medium">Failed to load image</span>
+          <div className="absolute inset-0 bg-red-900/20 flex items-center justify-center">
+            <span className="text-red-400 text-xs font-medium">Failed to load</span>
           </div>
         ) : (
           <img
@@ -38,22 +39,24 @@ export function NotionMock({ imageUrl, pageIcon, pageTitle, notionDark }: Notion
       </div>
 
       {/* Page header */}
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-[28px] leading-none">{pageIcon}</span>
-          <span className={`text-[22px] font-bold ${textColor}`} style={{ fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif' }}>
-            {pageTitle}
-          </span>
+      {pageIcon && pageTitle && (
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[28px] leading-none">{pageIcon}</span>
+            <span className={`text-[20px] font-bold ${textColor}`} style={{ fontFamily: 'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif' }}>
+              {pageTitle}
+            </span>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <span className={`text-[11px] ${subtextColor} px-1.5 py-0.5 rounded ${chipBg}`}>
+              {'\u{1F4C5}'} Today
+            </span>
+            <span className={`text-[11px] ${subtextColor} px-1.5 py-0.5 rounded ${chipBg}`}>
+              {'\u{1F512}'} Private
+            </span>
+          </div>
         </div>
-        <div className="flex gap-3 mt-2">
-          <span className={`text-xs ${subtextColor} px-2 py-0.5 rounded ${notionDark ? 'bg-neutral-800' : 'bg-stone-100'}`}>
-            {'\u{1F4C5}'} Today
-          </span>
-          <span className={`text-xs ${subtextColor} px-2 py-0.5 rounded ${notionDark ? 'bg-neutral-800' : 'bg-stone-100'}`}>
-            {'\u{1F512}'} Private
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

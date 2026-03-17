@@ -1,17 +1,19 @@
 import type { PageConfig } from '../types';
+import { PageChip } from './PageChip';
 
 interface TopBarProps {
   workspaceName: string;
   isDemo: boolean;
   pages: PageConfig[];
   selections: Record<string, string>;
+  mode: 'browse' | 'review';
   notionDark: boolean;
-  appDark: boolean;
   allSelected: boolean;
   saving: boolean;
   onToggleNotionDark: () => void;
-  onToggleAppDark: () => void;
+  onToggleMode: () => void;
   onConfirm: () => void;
+  onPageChipClick: (pageId: string) => void;
 }
 
 export function TopBar({
@@ -19,82 +21,95 @@ export function TopBar({
   isDemo,
   pages,
   selections,
+  mode,
   notionDark,
-  appDark,
   allSelected,
   saving,
   onToggleNotionDark,
-  onToggleAppDark,
+  onToggleMode,
   onConfirm,
+  onPageChipClick,
 }: TopBarProps) {
+  const selectedCount = pages.filter((p) => !!selections[p.id]).length;
+
   return (
-    <header className="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+    <header className="flex items-center gap-4 px-4 h-12 border-b border-linear-border bg-linear-panel shrink-0">
       {/* Left: branding */}
-      <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded bg-accent flex items-center justify-center">
-          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 16 16">
+      <div className="flex items-center gap-2.5 shrink-0">
+        <div className="w-5 h-5 rounded bg-accent flex items-center justify-center">
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 16 16">
             <rect x="2" y="2" width="5" height="5" rx="0.5" />
             <rect x="9" y="2" width="5" height="5" rx="0.5" opacity="0.7" />
             <rect x="2" y="9" width="5" height="5" rx="0.5" opacity="0.7" />
             <rect x="9" y="9" width="5" height="5" rx="0.5" opacity="0.4" />
           </svg>
         </div>
-        <div>
-          <h1 className="text-sm font-semibold text-stone-800 dark:text-neutral-100 leading-tight">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-sm font-semibold text-linear-text-primary tracking-tight">
             {workspaceName}
           </h1>
-          <p className="text-xs text-stone-400 dark:text-neutral-500">
-            {isDemo ? 'Demo Mode' : 'Cover Image Selection'}
-          </p>
+          {isDemo && (
+            <span className="text-[10px] font-medium text-warning px-1.5 py-0.5 rounded bg-warning-muted">
+              Demo
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Centre: progress dots */}
-      <div className="flex items-center gap-1.5">
+      {/* Separator */}
+      <div className="w-px h-4 bg-linear-border" />
+
+      {/* Page chips */}
+      <div className="flex items-center gap-1.5 flex-1 overflow-x-auto min-w-0">
         {pages.map((page) => (
-          <div
+          <PageChip
             key={page.id}
-            title={page.name}
-            className={`w-2.5 h-2.5 rounded-full transition-colors ${
-              selections[page.id] ? 'bg-accent' : 'bg-stone-300 dark:bg-neutral-600'
-            }`}
+            icon={page.icon}
+            name={page.name}
+            imageUrl={selections[page.id]}
+            isActive={false}
+            onClick={() => onPageChipClick(page.id)}
           />
         ))}
       </div>
 
-      {/* Right: toggles + confirm */}
-      <div className="flex items-center gap-2">
+      {/* Progress */}
+      <span className="text-[11px] text-linear-text-muted shrink-0 tabular-nums">
+        {selectedCount}/{pages.length}
+      </span>
+
+      {/* Separator */}
+      <div className="w-px h-4 bg-linear-border" />
+
+      {/* Controls */}
+      <div className="flex items-center gap-1.5 shrink-0">
         <button
           type="button"
           onClick={onToggleNotionDark}
-          className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-            notionDark
-              ? 'bg-neutral-800 text-neutral-200 border-neutral-600'
-              : 'bg-white text-stone-600 border-stone-300 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600'
-          }`}
+          className="px-2 py-1 text-[11px] font-medium rounded-md text-linear-text-muted hover:text-linear-text-secondary hover:bg-linear-surface transition-colors"
         >
           Notion {notionDark ? 'Dark' : 'Light'}
         </button>
 
         <button
           type="button"
-          onClick={onToggleAppDark}
-          className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-            appDark
-              ? 'bg-neutral-800 text-neutral-200 border-neutral-600'
-              : 'bg-white text-stone-600 border-stone-300'
-          }`}
+          onClick={onToggleMode}
+          className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors
+            ${mode === 'review'
+              ? 'bg-accent-muted text-accent-light'
+              : 'text-linear-text-muted hover:text-linear-text-secondary hover:bg-linear-surface'
+            }`}
         >
-          {appDark ? '\u{1F319}' : '\u{2600}\u{FE0F}'}
+          {mode === 'review' ? 'Browse' : 'Review'}
         </button>
 
         <button
           type="button"
           onClick={onConfirm}
           disabled={!allSelected || saving}
-          className="px-4 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1 text-[11px] font-medium rounded-md bg-accent text-white hover:bg-accent-light disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          {saving ? 'Saving...' : 'Confirm Selections'}
+          {saving ? 'Saving...' : 'Confirm'}
         </button>
       </div>
     </header>

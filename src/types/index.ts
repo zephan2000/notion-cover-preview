@@ -1,14 +1,18 @@
 export interface PreviewConfig {
   workspace_name: string;
   pages: PageConfig[];
+  image_pool: ImageCandidate[];
 }
 
 export interface PageConfig {
   id: string;
   name: string;
   icon: string;
-  option_a: string;
-  option_b: string;
+}
+
+export interface ImageCandidate {
+  url: string;
+  tags: string[];
 }
 
 export interface SelectionsOutput {
