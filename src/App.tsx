@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useUrlState } from './hooks/useUrlState';
 import { ImageGrid } from './components/ImageGrid';
 import { SelectionDock } from './components/SelectionDock';
+import { RefineModeBar } from './components/RefineModeBar';
 import { ComparisonView } from './components/ComparisonView';
 import { FinalizeView } from './components/FinalizeView';
+import { JsonOutput } from './components/JsonOutput';
 import {
   imageCandidatesToCoverImages,
   selectedIdsToSelections,
@@ -19,11 +21,13 @@ function createInitialState(): AppState {
     workspaceName: '',
     selectedIds: [],
     repositionData: {},
+    lockedIds: [],
     previewSlots: [null, null],
     previewPageIndex: 0,
     abCandidates: {},
     showPreview: false,
     disclaimerDismissed: false,
+    regeneratePayload: null,
     saving: false,
     saved: false,
     isDemo: true,
@@ -47,6 +51,7 @@ function reducer(state: AppState, action: AppAction): AppState {
 
     case 'ASSIGN_TO_PAGE': {
       const newIds = [...state.selectedIds];
+      // Remove from any other slot first
       const existingIndex = newIds.indexOf(action.imageId);
       if (existingIndex !== -1) newIds[existingIndex] = null;
       newIds[action.pageIndex] = action.imageId;
@@ -54,7 +59,11 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'SET_MODE':
-      return { ...state, mode: action.mode };
+      return {
+        ...state,
+        mode: action.mode,
+        lockedIds: action.mode === 'refine' ? [] : state.lockedIds,
+      };
 
     case 'SET_REPOSITION':
       return {
@@ -66,17 +75,20 @@ function reducer(state: AppState, action: AppAction): AppState {
       };
 
     case 'OPEN_PREVIEW': {
+      // Find which page this image belongs to, or default to first unassigned or 0
       let pageIdx = state.selectedIds.indexOf(action.imageId);
       if (pageIdx === -1) {
         const firstEmpty = state.selectedIds.indexOf(null);
         pageIdx = firstEmpty !== -1 ? firstEmpty : 0;
       }
 
+      // Load persisted A/B candidates for this page, or start fresh
       const existing = state.abCandidates[pageIdx];
       let previewSlots: [string | null, string | null];
 
       if (existing) {
         previewSlots = [...existing] as [string | null, string | null];
+        // If clicked image isn't already in a slot, put it in slot A
         if (!previewSlots.includes(action.imageId)) {
           previewSlots[0] = action.imageId;
         }
@@ -99,11 +111,13 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'SET_PREVIEW_PAGE': {
+      // Save current candidates
       const savedCandidates = {
         ...state.abCandidates,
         [state.previewPageIndex]: [...state.previewSlots] as [string | null, string | null],
       };
 
+      // Load new page's candidates, or use selected image + null
       const newSlots = savedCandidates[action.pageIndex]
         || [state.selectedIds[action.pageIndex] || null, null];
 
@@ -119,6 +133,7 @@ function reducer(state: AppState, action: AppAction): AppState {
       const imageId = state.previewSlots[action.slot];
       if (!imageId) return state;
       const newIds = [...state.selectedIds];
+      // Remove this image from any other page slot
       const existingIdx = newIds.indexOf(imageId);
       if (existingIdx !== -1 && existingIdx !== state.previewPageIndex) {
         newIds[existingIdx] = null;
@@ -128,6 +143,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'CLOSE_PREVIEW': {
+      // Persist current A/B candidates before closing
       return {
         ...state,
         showPreview: false,
@@ -139,8 +155,55 @@ function reducer(state: AppState, action: AppAction): AppState {
       };
     }
 
+    case 'TOGGLE_LOCK': {
+      const locked = state.lockedIds.includes(action.imageId)
+        ? state.lockedIds.filter(id => id !== action.imageId)
+        : [...state.lockedIds, action.imageId];
+      return { ...state, lockedIds: locked };
+    }
+
+    case 'REGENERATE': {
+      const keptImages = state.images.filter(img =>
+        state.lockedIds.includes(img.id)
+      );
+      const regenerateCount = state.images.length - keptImages.length;
+
+      const payload = {
+        action: 'regenerate',
+        keep: keptImages.map(img => ({
+          url: img.url,
+          reposition: state.repositionData[img.id] || { x: 0.5, y: 0.5 },
+        })),
+        regenerate_count: regenerateCount,
+      };
+
+      const newImages = state.images.map(img => {
+        if (state.lockedIds.includes(img.id)) return img;
+        const newSeed = `${img.seed}_r${Date.now().toString(36)}${Math.random()
+          .toString(36)
+          .slice(2, 5)}`;
+        return {
+          ...img,
+          id: newSeed,
+          seed: newSeed,
+          url: `https://picsum.photos/seed/${newSeed}/${img.width}/${img.height}`,
+        };
+      });
+
+      return {
+        ...state,
+        images: newImages,
+        mode: 'browse',
+        lockedIds: [],
+        regeneratePayload: payload,
+      };
+    }
+
     case 'DISMISS_DISCLAIMER':
       return { ...state, disclaimerDismissed: true };
+
+    case 'DISMISS_REGENERATE':
+      return { ...state, regeneratePayload: null };
 
     case 'FINALIZE':
       return { ...state, mode: 'finalized' };
@@ -160,11 +223,13 @@ function reducer(state: AppState, action: AppAction): AppState {
         mode: 'browse',
         selectedIds: new Array(state.pages.length).fill(null),
         repositionData: {},
+        lockedIds: [],
         previewSlots: [null, null],
         previewPageIndex: 0,
         abCandidates: {},
         showPreview: false,
         disclaimerDismissed: false,
+        regeneratePayload: null,
         saving: false,
         saved: false,
       };
@@ -181,12 +246,11 @@ export default function App() {
   // Initialize state when config loads
   useEffect(() => {
     if (!loading && config) {
-      dispatch({ type: 'RESET' }); // Reset to clean state first
+      dispatch({ type: 'RESET' });
     }
   }, [loading, config]);
 
-  // We can't dispatch custom actions, so we derive the actual state
-  // by overlaying config onto the reducer state
+  // Derive appState by overlaying config onto reducer state
   const appState: AppState = {
     ...state,
     images: imageCandidatesToCoverImages(config.image_pool),
@@ -202,12 +266,20 @@ export default function App() {
     dispatch({ type: 'SET_SAVING', saving: true });
     const selections = selectedIdsToSelections(appState.selectedIds, appState.pages);
 
+    // Build repositions: map pageId → {x, y} for pages that have repositioned images
+    const repositions: Record<string, { x: number; y: number }> = {};
+    for (let i = 0; i < appState.pages.length; i++) {
+      const imageId = appState.selectedIds[i];
+      if (imageId && appState.repositionData[imageId]) {
+        repositions[appState.pages[i].id] = appState.repositionData[imageId];
+      }
+    }
+
     if (isDemo) {
-      // In demo mode, just simulate success
       await new Promise(resolve => setTimeout(resolve, 500));
       dispatch({ type: 'SET_SAVED' });
     } else {
-      const ok = await writeSelections(selections);
+      const ok = await writeSelections(selections, repositions);
       if (ok) {
         dispatch({ type: 'SET_SAVED' });
       } else {
@@ -255,15 +327,34 @@ export default function App() {
       {/* Grid */}
       <div
         className={`px-6 ${
-          appState.selectedIds.some(id => id !== null) ? 'pt-8' : ''
+          appState.selectedIds.some(id => id !== null) || appState.mode !== 'browse' ? 'pt-8' : ''
         } pb-32`}
       >
         <ImageGrid state={appState} dispatch={dispatch} />
       </div>
 
+      {/* Regenerate result toast */}
+      <AnimatePresence>
+        {appState.regeneratePayload && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed top-6 right-6 w-96 z-50 cursor-pointer"
+            onClick={() => dispatch({ type: 'DISMISS_REGENERATE' })}
+          >
+            <JsonOutput data={appState.regeneratePayload} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom bar */}
       <AnimatePresence mode="wait">
-        <SelectionDock key="dock" state={appState} dispatch={dispatch} />
+        {appState.mode === 'refine' ? (
+          <RefineModeBar key="refine" state={appState} dispatch={dispatch} />
+        ) : (
+          <SelectionDock key="dock" state={appState} dispatch={dispatch} />
+        )}
       </AnimatePresence>
 
       {/* Preview / Comparison overlay */}

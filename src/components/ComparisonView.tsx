@@ -17,11 +17,8 @@ export const ComparisonView = ({ state, dispatch }: Props) => {
   const leftImage = previewSlots[0] ? images.find((img) => img.id === previewSlots[0]) : null;
   const rightImage = previewSlots[1] ? images.find((img) => img.id === previewSlots[1]) : null;
 
-  const currentPage = pages[previewPageIndex];
-  const pageName = currentPage?.name ?? "Untitled";
-  const pageIcon = currentPage?.icon ?? "\u{1F4C4}";
-  const isSelectedA = state.selectedIds[previewPageIndex] === previewSlots[0];
-  const isSelectedB = state.selectedIds[previewPageIndex] === previewSlots[1];
+  const pageName = pages[previewPageIndex]?.name ?? 'Untitled';
+  const pageIcon = pages[previewPageIndex]?.icon ?? '\u{1F4C4}';
 
   const handleClose = useCallback(() => {
     dispatch({ type: "CLOSE_PREVIEW" });
@@ -42,10 +39,6 @@ export const ComparisonView = ({ state, dispatch }: Props) => {
   const handleConfirm = (slot: 0 | 1) => {
     dispatch({ type: "CONFIRM_AB_SELECTION", slot });
   };
-
-  // Suppress unused variable warnings for type-checked but unused bindings
-  void isSelectedA;
-  void isSelectedB;
 
   return (
     <motion.div

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Check, ArrowLeft, Loader2 } from 'lucide-react';
+import { Check, RotateCcw, ArrowLeft, Loader2 } from 'lucide-react';
+import { JsonOutput } from './JsonOutput';
 import { NotionMockup } from './NotionMockup';
 import type { AppState, AppAction } from '@/lib/cover-picker-types';
 
@@ -10,7 +11,23 @@ type Props = {
 };
 
 export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
-  const { selectedIds, images, pages, saving, saved, isDemo } = state;
+  const { selectedIds, images, repositionData, pages, saving, saved, isDemo } = state;
+
+  const payload = {
+    action: "finalize",
+    covers: selectedIds
+      .map((id, i) => {
+        if (!id) return null;
+        const image = images.find(img => img.id === id)!;
+        const reposition = repositionData[id] || { x: 0.5, y: 0.5 };
+        return {
+          page: pages[i]?.name ?? 'Untitled',
+          url: image.url,
+          reposition,
+        };
+      })
+      .filter(Boolean),
+  };
 
   const assignedCards = selectedIds
     .map((id, i) => {
@@ -34,12 +51,12 @@ export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-foreground/10 mb-4">
           <Check className="w-6 h-6 text-foreground" />
         </div>
-        <h1 className="text-3xl font-light text-foreground mb-3">
-          {saved ? 'Workspace ready.' : 'Review your selections'}
-        </h1>
         {saved ? (
           <>
-            <p className="text-sm text-muted-foreground">Your selections have been saved.</p>
+            <h1 className="text-3xl font-light text-foreground mb-3">
+              Workspace ready.
+            </h1>
+            <p className="text-sm text-muted-foreground">Your selections are saved.</p>
             {!isDemo && (
               <p className="text-sm text-muted-foreground mt-1">
                 Head back to Manus and say{' '}
@@ -50,9 +67,14 @@ export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
             )}
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            {assignedCards.length} page{assignedCards.length !== 1 ? 's' : ''} with covers assigned
-          </p>
+          <>
+            <h1 className="text-3xl font-light text-foreground mb-3">
+              Review your selections
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {assignedCards.length} page{assignedCards.length !== 1 ? 's' : ''} with covers assigned
+            </p>
+          </>
         )}
       </motion.div>
 
@@ -78,8 +100,8 @@ export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
                   image={image}
                   state={state}
                   dispatch={dispatch}
-                  pageTitle={pages[pageIndex].name}
-                  pageIcon={pages[pageIndex].icon}
+                  pageTitle={pages[pageIndex]?.name ?? 'Untitled'}
+                  pageIcon={pages[pageIndex]?.icon ?? '\u{1F4C4}'}
                 />
               </div>
             );
@@ -92,14 +114,26 @@ export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
                   image={image}
                   state={state}
                   dispatch={dispatch}
-                  pageTitle={pages[pageIndex].name}
-                  pageIcon={pages[pageIndex].icon}
+                  pageTitle={pages[pageIndex]?.name ?? 'Untitled'}
+                  pageIcon={pages[pageIndex]?.icon ?? '\u{1F4C4}'}
                 />
               </div>
             ))}
           </div>
         )}
       </motion.div>
+
+      {/* JSON output — shown after saved */}
+      {saved && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="w-full max-w-2xl mb-8"
+        >
+          <JsonOutput data={payload} collapsible />
+        </motion.div>
+      )}
 
       {/* Actions */}
       <motion.div
@@ -135,6 +169,16 @@ export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
           <ArrowLeft className="w-3.5 h-3.5" />
           Edit selections
         </button>
+
+        {saved && (
+          <button
+            onClick={() => dispatch({ type: 'RESET' })}
+            className="flex items-center gap-2 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Start over
+          </button>
+        )}
       </motion.div>
     </div>
   );

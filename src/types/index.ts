@@ -15,7 +15,13 @@ export interface ImageCandidate {
   tags: string[];
 }
 
+export interface RepositionConfig {
+  x: number;
+  y: number;
+}
+
 export interface SelectionsOutput {
   selections: Record<string, string>;
+  repositions?: Record<string, RepositionConfig>;
   confirmed_at: string;
 }

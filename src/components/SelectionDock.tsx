@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Eye } from 'lucide-react';
+import { Sparkles, RefreshCw, Eye } from 'lucide-react';
 import type { AppState, AppAction } from '@/lib/cover-picker-types';
 
 type Props = {
@@ -8,8 +8,8 @@ type Props = {
 };
 
 export const SelectionDock = ({ state, dispatch }: Props) => {
-  const total = state.pages.length;
   const count = state.selectedIds.filter(Boolean).length;
+  const total = state.pages.length;
 
   const assignedImages = state.selectedIds
     .map((id, i) => {
@@ -27,9 +27,21 @@ export const SelectionDock = ({ state, dispatch }: Props) => {
       exit={{ y: 100, opacity: 0 }}
       className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-0 rounded-full bg-card/70 backdrop-blur-xl border border-border/50 shadow-2xl z-40 overflow-hidden max-w-[720px]"
     >
+      {/* Refine button */}
+      <button
+        onClick={() => dispatch({ type: 'SET_MODE', mode: 'refine' })}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-5 py-3 hover:bg-accent/50 flex-shrink-0"
+      >
+        <RefreshCw className="w-3.5 h-3.5" />
+        Refine
+      </button>
+
+      {/* Divider */}
+      <div className="w-px h-8 bg-border/50 flex-shrink-0" />
+
       {/* Counter */}
       <div
-        className={`flex items-center gap-2 px-5 py-3 transition-colors flex-shrink-0 ${
+        className={`flex items-center gap-2 px-4 py-3 transition-colors flex-shrink-0 ${
           count > 0 ? 'text-foreground' : 'text-muted-foreground'
         }`}
       >
@@ -64,7 +76,7 @@ export const SelectionDock = ({ state, dispatch }: Props) => {
                   </button>
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md bg-foreground text-background text-[10px] font-medium whitespace-nowrap opacity-0 group-hover/thumb:opacity-100 transition-opacity pointer-events-none z-50">
-                    {state.pages[item.pageIndex]?.icon} {state.pages[item.pageIndex]?.name}
+                    {state.pages[item.pageIndex]?.icon ?? ''} {state.pages[item.pageIndex]?.name ?? ''}
                   </div>
                 </motion.div>
               ))}

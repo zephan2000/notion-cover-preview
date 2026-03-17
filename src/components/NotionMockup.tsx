@@ -109,7 +109,7 @@ export const NotionMockup = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto bg-card rounded-lg overflow-hidden shadow-2xl border border-border/50">
-      {/* Cover banner */}
+      {/* Cover banner — 16 / 3.2 aspect ratio */}
       <div
         ref={bannerRef}
         className={`relative overflow-hidden group select-none ${
@@ -255,9 +255,7 @@ export const NotionMockup = ({
               >
                 {state.pages.map((page, i) => {
                   const assignedImageId = state.selectedIds[i];
-                  const assignedImage = assignedImageId
-                    ? state.images.find(img => img.id === assignedImageId)
-                    : null;
+                  const assignedImage = assignedImageId ? state.images.find(img => img.id === assignedImageId) : null;
                   const isCurrentImage = assignedImageId === image.id;
 
                   return (

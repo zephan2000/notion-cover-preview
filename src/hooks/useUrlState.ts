@@ -112,14 +112,17 @@ export function useUrlState() {
     setLoading(false);
   }, []);
 
-  async function writeSelections(selections: Record<string, string>): Promise<boolean> {
+  async function writeSelections(
+    selections: Record<string, string>,
+    repositions?: Record<string, { x: number; y: number }>,
+  ): Promise<boolean> {
     const confirmedAt = new Date().toISOString();
     if (configId) {
       try {
         const res = await fetch(`/api/config/${encodeURIComponent(configId)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ selections, confirmed_at: confirmedAt }),
+          body: JSON.stringify({ selections, repositions, confirmed_at: confirmedAt }),
         });
         if (!res.ok) throw new Error('Failed to save');
         return true;

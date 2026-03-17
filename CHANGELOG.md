@@ -3,6 +3,26 @@
 All notable changes to this project will be documented here.
 Format: [Semantic Versioning](https://semver.org/)
 
+## [2.2.0] - 2026-03-18
+
+### Changed — Complete frontend port from vibe-weave-select reference
+- Full frontend replaced with vibe-weave-select reference project UI
+- Refine mode: lock images to keep, regenerate others, payload shown as dismissible toast
+- Reposition: drag focal point in NotionMockup, saves to state and DB via repositions field
+- Dynamic pages/workspace: all PAGES/PAGE_ICONS constants removed, replaced with state.pages from config
+- FinalizeView: two-phase flow — review (confirm button) then saved (Manus handoff message + JSON output)
+- writeSelections now includes repositions in PATCH payload body
+- New components: RefineModeBar, CoverCard (with lock/refine), SelectionDock (with refine button)
+- Updated types: Added RepositionConfig, updated SelectionsOutput with optional repositions field
+- CoverImage type now includes width, height, seed fields (from reference)
+- AppState includes lockedIds, regeneratePayload, saving, saved, isDemo
+
+## [2.1.0] - 2026-03-17
+### Changed
+- CLAUDE.md rewritten to reflect v2.0.0 architecture accurately
+- Removed all references to deleted components and old Option A/B model
+- Added complete AppState documentation, mode descriptions, and hard constraints
+
 ## [1.0.0] - 2026-03-17
 
 ### Changed — Cover Studio redesign
