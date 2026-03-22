@@ -3,6 +3,20 @@
 All notable changes to this project will be documented here.
 Format: [Semantic Versioning](https://semver.org/)
 
+## [2.3.0] - 2026-03-22
+
+### Added — Facebook OAuth flow + workspace identity system
+- POST /api/oauth/initiate — creates a `workspaces` row, returns `workspace_id` (UUID) + Facebook OAuth URL
+- GET /api/oauth/callback — exchanges code for long-lived token, resolves IG account + FB page credentials, stores all in `workspaces` table
+- GET /api/oauth/verify — Manus polls `?workspace_id=` to confirm OAuth completed
+- New Supabase tables replacing `workspace_clients`:
+  - `workspaces` — one row per client (id, client_name, access_token, ig_account_id, page_access_token, fb_page_id, google_drive_link, token_expires_at)
+  - `workspace_databases` — one row per Posts database (posts_database_id → workspace_id FK)
+- `workspace_id` (UUID) is the system-wide identity key, generated at initiate time, used across all phases
+- Callback stores page_access_token and fb_page_id alongside the user-level long-lived token
+- Callback renders dark-themed success/error HTML pages matching the app's design system
+- Required env vars: FACEBOOK_APP_ID, FACEBOOK_APP_SECRET (set in Vercel)
+
 ## [2.2.2] - 2026-03-18
 
 ### Fixed
