@@ -169,12 +169,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let igAccountId: string | null = null;
     let pageAccessToken: string | null = null;
     let fbPageId: string | null = null;
+    const debugPages: Array<{ id: string; name: string; igResponse: unknown }> = [];
 
     for (const page of pagesData.data) {
       const igRes = await fetch(
-        `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${encodeURIComponent(accessToken)}`,
+        `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${encodeURIComponent(page.access_token || accessToken)}`,
       );
       const igData = await igRes.json();
+
+      debugPages.push({ id: page.id, name: page.name, igResponse: igData });
 
       if (igData.instagram_business_account?.id) {
         igAccountId = igData.instagram_business_account.id;
@@ -190,7 +193,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         renderPage(
           'No Instagram Account',
           'No Instagram Account Found',
-          'None of your Facebook Pages have a connected Instagram Business or Creator account. Please connect one in your Facebook Page settings and try again.',
+          `Debug info — Pages found: ${JSON.stringify(debugPages, null, 2)}`,
           true,
         ),
       );
