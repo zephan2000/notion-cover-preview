@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const workspaceId = data.id;
 
     const redirectUri = 'https://notion-cover-preview.vercel.app/api/oauth/callback';
-    const scope = 'instagram_basic,instagram_content_publish,pages_show_list';
+    const scope = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement';
 
     const oauthUrl = new URL('https://www.facebook.com/v21.0/dialog/oauth');
     oauthUrl.searchParams.set('client_id', facebookAppId);
