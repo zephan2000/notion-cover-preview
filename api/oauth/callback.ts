@@ -145,7 +145,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const longTokenRes = await fetch(longTokenUrl.toString());
     const longTokenData = await longTokenRes.json();
 
-    const accessToken = longTokenData.access_token || tokenData.access_token;
+    if (!longTokenRes.ok || !longTokenData.access_token) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(
+        renderPage(
+          'Token Exchange Failed',
+          'Long-Lived Token Exchange Failed',
+          `Could not exchange for a long-lived token. Debug: ${JSON.stringify(longTokenData)}`,
+          true,
+        ),
+      );
+    }
+
+    const accessToken = longTokenData.access_token;
 
     // Step 3: Get user's Facebook pages
     const pagesRes = await fetch(
@@ -229,7 +241,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       renderPage(
         'Authorization Complete',
         'You\'re all set!',
-        'Your Instagram account has been connected successfully. You can close this tab and return to your conversation with Manus.',
+        `Your Instagram account has been connected successfully. Token type: long-lived (expires ${expiresAt}). You can close this tab and return to your conversation with Manus.`,
         false,
       ),
     );
