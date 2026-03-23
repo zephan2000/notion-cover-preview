@@ -3,6 +3,18 @@
 All notable changes to this project will be documented here.
 Format: [Semantic Versioning](https://semver.org/)
 
+## [2.4.0] - 2026-03-24
+
+### Added — Notion OAuth flow for n8n integration access
+- POST /api/notion-oauth/initiate — generates Notion OAuth URL for an existing workspace
+- GET /api/notion-oauth/callback — exchanges code for access + refresh token via Notion's OAuth, stores on workspace row
+- GET /api/notion-oauth/verify — Manus polls to confirm Notion OAuth completed
+- New columns on `workspaces` table: `notion_access_token`, `notion_refresh_token`, `notion_bot_id`, `notion_workspace_id`
+- Placed in Phase 3 as Sub-step D+ (after workspace structure is built, before Posts DB creation)
+- Eliminates manual Notion integration assignment — user authorizes via OAuth page picker instead
+- Phase protocol updates: PHASE3_ENTRY routing table, PHASE3_E_FEEDPLAN (D+ section), STATE_PROTOCOL (notion_oauth_verified field), PHASE3_F_VERIFY (Check 9)
+- Required env vars: NOTION_OAUTH_CLIENT_ID, NOTION_OAUTH_CLIENT_SECRET (set in Vercel)
+
 ## [2.3.0] - 2026-03-22
 
 ### Added — Facebook OAuth flow + workspace identity system
