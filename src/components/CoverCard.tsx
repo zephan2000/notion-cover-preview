@@ -15,8 +15,10 @@ export const CoverCard = ({ image, state, dispatch, index }: Props) => {
   const isRepositioned = !!state.repositionData[image.id];
   const isRefineMode = state.mode === 'refine';
   const isLocked = state.lockedIds.includes(image.id);
+  const isNew = state.newImageIds.includes(image.id);
 
   const handleClick = () => {
+    if (isNew) dispatch({ type: 'CLEAR_NEW_BADGE', imageId: image.id });
     if (isRefineMode) {
       dispatch({ type: 'TOGGLE_LOCK', imageId: image.id });
     } else if (isSelected) {
@@ -24,6 +26,10 @@ export const CoverCard = ({ image, state, dispatch, index }: Props) => {
     } else {
       dispatch({ type: 'SELECT_IMAGE', imageId: image.id });
     }
+  };
+
+  const handleMouseEnter = () => {
+    if (isNew) dispatch({ type: 'CLEAR_NEW_BADGE', imageId: image.id });
   };
 
   const handlePreview = (e: React.MouseEvent) => {
@@ -42,8 +48,9 @@ export const CoverCard = ({ image, state, dispatch, index }: Props) => {
         isRefineMode && !isLocked ? 'opacity-40' : ''
       } ${isLocked ? 'ring-2 ring-green-400 opacity-100' : ''} ${
         isSelected && !isRefineMode ? 'ring-2 ring-foreground' : ''
-      }`}
+      } ${isNew ? 'ring-1 ring-blue-400/50 shadow-[0_0_12px_rgba(96,165,250,0.25)]' : ''}`}
       onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
     >
       <img
         src={image.url}

@@ -6,9 +6,17 @@ export type CoverImage = {
   width: number;
   height: number;
   seed: string;
+  tags: string[];
 };
 
 export type AppMode = 'browse' | 'refine' | 'finalized' | 'regenerated';
+
+export type SearchMode = 'add' | 'swap';
+
+export type SearchHistoryEntry = {
+  query: string;
+  resultCount: number;
+};
 
 export type AppState = {
   mode: AppMode;
@@ -27,6 +35,11 @@ export type AppState = {
   saving: boolean;
   saved: boolean;
   isDemo: boolean;
+  searchDrawerOpen: boolean;
+  searchMode: SearchMode;
+  searchHistory: SearchHistoryEntry[];
+  newImageIds: string[];
+  searching: boolean;
 };
 
 export type AppAction =
@@ -49,7 +62,12 @@ export type AppAction =
   | { type: 'SET_SAVED' }
   | { type: 'EDIT_SELECTIONS' }
   | { type: 'RESET' }
-  | { type: 'INIT_CONFIG'; images: CoverImage[]; pages: import('../types').PageConfig[]; workspaceName: string; isDemo: boolean };
+  | { type: 'INIT_CONFIG'; images: CoverImage[]; pages: import('../types').PageConfig[]; workspaceName: string; isDemo: boolean }
+  | { type: 'OPEN_SEARCH'; mode: SearchMode }
+  | { type: 'CLOSE_SEARCH' }
+  | { type: 'SET_SEARCHING'; searching: boolean }
+  | { type: 'SEARCH_RESULTS_RECEIVED'; images: CoverImage[]; query: string }
+  | { type: 'CLEAR_NEW_BADGE'; imageId: string };
 
 /**
  * Convert ImageCandidate[] from the API config into CoverImage[].
@@ -75,6 +93,7 @@ export function imageCandidatesToCoverImages(pool: ImageCandidate[]): CoverImage
       width,
       height,
       seed: img.url,
+      tags: img.tags ?? [],
     };
   });
 }

@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, RefreshCw, Eye } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Sparkles, RefreshCw, Eye, Search } from 'lucide-react';
 import type { AppState, AppAction } from '@/lib/cover-picker-types';
 
 type Props = {
@@ -21,12 +21,17 @@ export const SelectionDock = ({ state, dispatch }: Props) => {
     .filter(Boolean) as { id: string; image: { url: string }; pageIndex: number }[];
 
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-0 rounded-full bg-card/70 backdrop-blur-xl border border-border/50 shadow-2xl z-40 overflow-hidden max-w-[720px]"
-    >
+    <div className="flex items-center gap-0 rounded-full bg-card/70 backdrop-blur-xl border border-border/50 shadow-2xl overflow-hidden max-w-[720px]">
+      {/* Search button */}
+      <button
+        onClick={() => dispatch({ type: 'OPEN_SEARCH', mode: 'add' })}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-3 hover:bg-accent/50 flex-shrink-0"
+        title="Search for images"
+      >
+        <Search className="w-3.5 h-3.5" />
+      </button>
+
+      <div className="w-px h-8 bg-border/50 flex-shrink-0" />
       {/* Refine button */}
       <button
         onClick={() => dispatch({ type: 'SET_MODE', mode: 'refine' })}
@@ -119,6 +124,6 @@ export const SelectionDock = ({ state, dispatch }: Props) => {
           </motion.button>
         </>
       )}
-    </motion.div>
+    </div>
   );
 };

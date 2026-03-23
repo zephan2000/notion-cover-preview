@@ -1,5 +1,4 @@
-import { motion } from 'framer-motion';
-import { RotateCw, X } from 'lucide-react';
+import { RotateCw, X, Search } from 'lucide-react';
 import type { AppState, AppAction } from '@/lib/cover-picker-types';
 
 type Props = {
@@ -12,18 +11,21 @@ export const RefineModeBar = ({ state, dispatch }: Props) => {
   const totalCount = state.images.length;
 
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-6 left-0 right-0 mx-auto w-fit flex items-center gap-4 px-5 py-3 rounded-2xl bg-card/80 backdrop-blur-xl border border-green-400/20 shadow-2xl z-40"
-    >
+    <div className="flex items-center gap-4 px-5 py-3 rounded-2xl bg-card/80 backdrop-blur-xl border border-green-400/20 shadow-2xl">
       <span className="text-sm text-muted-foreground">
         <span className="text-green-400 font-medium tabular-nums">{lockedCount}</span>
         {' '}kept · {totalCount - lockedCount} to replace
       </span>
 
       <div className="w-px h-8 bg-border" />
+
+      <button
+        onClick={() => dispatch({ type: 'OPEN_SEARCH', mode: 'add' })}
+        className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+        title="Search for images"
+      >
+        <Search className="w-4 h-4 text-muted-foreground" />
+      </button>
 
       <button
         onClick={() => dispatch({ type: 'REGENERATE' })}
@@ -40,6 +42,6 @@ export const RefineModeBar = ({ state, dispatch }: Props) => {
       >
         <X className="w-4 h-4 text-muted-foreground" />
       </button>
-    </motion.div>
+    </div>
   );
 };

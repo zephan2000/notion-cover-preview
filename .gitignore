@@ -25,3 +25,6 @@ dist-ssr
 
 
 vibe-weave-select
+
+# API keys
+api_keys.txt

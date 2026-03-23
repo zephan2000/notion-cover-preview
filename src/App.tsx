@@ -2,11 +2,11 @@ import { useReducer, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useUrlState } from './hooks/useUrlState';
 import { ImageGrid } from './components/ImageGrid';
-import { SelectionDock } from './components/SelectionDock';
-import { RefineModeBar } from './components/RefineModeBar';
+import { FloatingToolbar } from './components/FloatingToolbar';
 import { ComparisonView } from './components/ComparisonView';
 import { FinalizeView } from './components/FinalizeView';
 import { RegenerateConfirmView } from './components/RegenerateConfirmView';
+import { SearchDrawer } from './components/SearchDrawer';
 import { JsonOutput } from './components/JsonOutput';
 import {
   imageCandidatesToCoverImages,
@@ -32,6 +32,11 @@ function createInitialState(): AppState {
     saving: false,
     saved: false,
     isDemo: true,
+    searchDrawerOpen: false,
+    searchMode: 'add',
+    searchHistory: [],
+    newImageIds: [],
+    searching: false,
   };
 }
 
@@ -164,24 +169,10 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'REGENERATE': {
-      const keptImages = state.images.filter(img =>
-        state.lockedIds.includes(img.id)
-      );
-      const regenerateCount = state.images.length - keptImages.length;
-
-      const payload = {
-        action: 'regenerate',
-        keep: keptImages.map(img => ({
-          url: img.url,
-          reposition: state.repositionData[img.id] || { x: 0.5, y: 0.5 },
-        })),
-        regenerate_count: regenerateCount,
-      };
-
       return {
         ...state,
-        mode: 'regenerated',
-        regeneratePayload: payload,
+        searchDrawerOpen: true,
+        searchMode: 'swap',
       };
     }
 
@@ -239,6 +230,49 @@ function reducer(state: AppState, action: AppAction): AppState {
         saving: false,
         saved: false,
         mode: 'browse',
+        searchDrawerOpen: false,
+        searchMode: 'add',
+        searchHistory: [],
+        newImageIds: [],
+        searching: false,
+      };
+
+    case 'OPEN_SEARCH':
+      return { ...state, searchDrawerOpen: true, searchMode: action.mode };
+
+    case 'CLOSE_SEARCH':
+      return { ...state, searchDrawerOpen: false };
+
+    case 'SET_SEARCHING':
+      return { ...state, searching: action.searching };
+
+    case 'SEARCH_RESULTS_RECEIVED': {
+      const newIds = action.images.map(img => img.id);
+      if (state.searchMode === 'swap') {
+        // Replace unlocked images with new ones, keep locked
+        const lockedImages = state.images.filter(img => state.lockedIds.includes(img.id));
+        return {
+          ...state,
+          images: [...lockedImages, ...action.images],
+          newImageIds: [...state.newImageIds, ...newIds],
+          searchHistory: [...state.searchHistory, { query: action.query, resultCount: action.images.length }],
+          searching: false,
+        };
+      }
+      // Add mode: merge new images into the pool
+      return {
+        ...state,
+        images: [...state.images, ...action.images],
+        newImageIds: [...state.newImageIds, ...newIds],
+        searchHistory: [...state.searchHistory, { query: action.query, resultCount: action.images.length }],
+        searching: false,
+      };
+    }
+
+    case 'CLEAR_NEW_BADGE':
+      return {
+        ...state,
+        newImageIds: state.newImageIds.filter(id => id !== action.imageId),
       };
 
     default:
@@ -373,14 +407,11 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Bottom bar */}
-      <AnimatePresence mode="wait">
-        {state.mode === 'refine' ? (
-          <RefineModeBar key="refine" state={state} dispatch={dispatch} />
-        ) : (
-          <SelectionDock key="dock" state={state} dispatch={dispatch} />
-        )}
-      </AnimatePresence>
+      {/* Floating toolbar (selection dock / refine bar) */}
+      <FloatingToolbar state={state} dispatch={dispatch} />
+
+      {/* Search drawer */}
+      <SearchDrawer state={state} dispatch={dispatch} config={config} />
 
       {/* Preview / Comparison overlay */}
       <AnimatePresence>

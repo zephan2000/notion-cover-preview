@@ -1,5 +1,11 @@
+export interface BrandContext {
+  business_type: string;
+  brand_vibe: string[];
+}
+
 export interface PreviewConfig {
   workspace_name: string;
+  brand_context?: BrandContext;
   pages: PageConfig[];
   image_pool: ImageCandidate[];
 }
