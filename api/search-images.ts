@@ -67,7 +67,7 @@ async function generateSearchQueries(
   userQuery: string,
   history: { query: string; returned_urls: string[] }[],
   brandContext: { business_type: string; brand_vibe: string[] } | undefined,
-  anthropicKey: string,
+  openrouterKey: string,
 ): Promise<string[]> {
   const systemPrompt = `You generate search queries for stock image APIs (Unsplash, Pexels, Pixabay).
 Return ONLY a JSON array of 3-5 short keyword queries (2-4 words each) optimized for stock photo search.
@@ -79,18 +79,17 @@ ${brandContext ? `Brand context — business: ${brandContext.business_type}, vib
     ? `\nPrevious searches: ${history.map(h => `"${h.query}" (returned ${h.returned_urls.length} images)`).join(', ')}. Generate DIFFERENT queries this time.`
     : '';
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': anthropicKey,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${openrouterKey}`,
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'anthropic/claude-haiku-4-5-20251001',
       max_tokens: 200,
-      system: systemPrompt,
       messages: [
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: `User request: "${userQuery}"${historyContext}\n\nReturn JSON array of search queries:` },
       ],
     }),
@@ -102,7 +101,7 @@ ${brandContext ? `Brand context — business: ${brandContext.business_type}, vib
   }
 
   const data = await res.json();
-  const text = data.content?.[0]?.text ?? '';
+  const text = data.choices?.[0]?.message?.content ?? '';
   try {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(String);
@@ -122,26 +121,25 @@ ${brandContext ? `Brand context — business: ${brandContext.business_type}, vib
 async function assignTags(
   images: StockImage[],
   userQuery: string,
-  anthropicKey: string,
+  openrouterKey: string,
 ): Promise<StockImage[]> {
   if (images.length === 0) return [];
 
   const imageList = images.map((img, i) => `${i}: ${img.url} (source: ${img.source})`).join('\n');
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': anthropicKey,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${openrouterKey}`,
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'anthropic/claude-haiku-4-5-20251001',
       max_tokens: 1000,
-      system: `Assign 1-3 tags to each image based on its URL and the search context.
-Available tags: brand, workspace, creative, nature, planning, abstract, warm, urban, tech, minimal, lifestyle, organic, bold, muted, colorful, dark, light.
-Return ONLY a JSON array of tag arrays, one per image. Example: [["warm","lifestyle"],["minimal","workspace"]]`,
       messages: [
+        { role: 'system', content: `Assign 1-3 tags to each image based on its URL and the search context.
+Available tags: brand, workspace, creative, nature, planning, abstract, warm, urban, tech, minimal, lifestyle, organic, bold, muted, colorful, dark, light.
+Return ONLY a JSON array of tag arrays, one per image. Example: [["warm","lifestyle"],["minimal","workspace"]]` },
         { role: 'user', content: `Search was for: "${userQuery}"\n\nImages:\n${imageList}\n\nReturn JSON array of tag arrays:` },
       ],
     }),
@@ -157,7 +155,7 @@ Return ONLY a JSON array of tag arrays, one per image. Example: [["warm","lifest
   }
 
   const data = await res.json();
-  const text = data.content?.[0]?.text ?? '';
+  const text = data.choices?.[0]?.message?.content ?? '';
   try {
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
@@ -180,10 +178,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pexelsKey = process.env.PEXELS_API_KEY;
   const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
   const pixabayKey = process.env.PIXABAY_API_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
 
-  if (!anthropicKey) {
-    return res.status(500).json({ error: 'Missing ANTHROPIC_API_KEY' });
+  if (!openrouterKey) {
+    return res.status(500).json({ error: 'Missing OPENROUTER_API_KEY' });
   }
   if (!pexelsKey && !unsplashKey && !pixabayKey) {
     return res.status(500).json({ error: 'No image API keys configured' });
@@ -198,7 +196,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Step 1: Generate optimized search queries
-    const searchQueries = await generateSearchQueries(query, history, brand_context, anthropicKey);
+    const searchQueries = await generateSearchQueries(query, history, brand_context, openrouterKey);
 
     // Step 2: Search all available APIs in parallel
     const perQueryCount = Math.ceil((count + 5) / searchQueries.length); // overfetch to account for deduplication
@@ -235,7 +233,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const trimmed = unique.slice(0, count);
 
     // Step 5: Assign tags via Claude
-    const tagged = await assignTags(trimmed, query, anthropicKey);
+    const tagged = await assignTags(trimmed, query, openrouterKey);
 
     return res.status(200).json({
       images: tagged.map(img => ({

@@ -141,7 +141,7 @@ New reducer actions:
 - `UNSPLASH_ACCESS_KEY`
 - `UNSPLASH_SECRET_KEY`
 - `PIXABAY_API_KEY`
-- `ANTHROPIC_API_KEY` (for Claude Haiku calls)
+- `OPENROUTER_API_KEY` (for Claude Haiku calls via OpenRouter)
 
 ## Implementation Priority
 1. Config schema change (brand_context) + .gitignore + env var setup
