@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 interface SearchRequestBody {
   query: string;
   history?: { query: string; returned_urls: string[] }[];
-  brand_context?: { business_type: string; brand_vibe: string[] };
+  brand_context?: { business_type: string; brand_vibe: string[]; brand_references?: string[]; brand_avoids?: string[]; brand_description?: string };
   existing_urls?: string[];
   count?: number;
 }
@@ -66,14 +66,14 @@ async function searchPixabay(query: string, perPage: number, apiKey: string): Pr
 async function generateSearchQueries(
   userQuery: string,
   history: { query: string; returned_urls: string[] }[],
-  brandContext: { business_type: string; brand_vibe: string[] } | undefined,
+  brandContext: { business_type: string; brand_vibe: string[]; brand_references?: string[]; brand_avoids?: string[]; brand_description?: string } | undefined,
   openrouterKey: string,
 ): Promise<string[]> {
   const systemPrompt = `You generate search queries for stock image APIs (Unsplash, Pexels, Pixabay).
 Return ONLY a JSON array of 3-5 short keyword queries (2-4 words each) optimized for stock photo search.
 No explanations, no markdown — just the JSON array.
 
-${brandContext ? `Brand context — business: ${brandContext.business_type}, vibe: ${brandContext.brand_vibe.join(', ')}. Use this as background flavor but prioritize the user's explicit request.` : ''}`;
+${brandContext ? `Brand context — ${brandContext.brand_description ? `"${brandContext.brand_description}"` : `business: ${brandContext.business_type}, vibe: ${brandContext.brand_vibe.join(', ')}`}.${!brandContext.brand_description && brandContext.brand_references?.length ? ` Inspired by: ${brandContext.brand_references.join(', ')}.` : ''}${brandContext.brand_avoids?.length ? ` AVOID these aesthetics: ${brandContext.brand_avoids.join(', ')}.` : ''} Use this as background flavor but prioritize the user's explicit request.` : ''}`;
 
   const historyContext = history.length > 0
     ? `\nPrevious searches: ${history.map(h => `"${h.query}" (returned ${h.returned_urls.length} images)`).join(', ')}. Generate DIFFERENT queries this time.`

@@ -1,6 +1,9 @@
 export interface BrandContext {
   business_type: string;
   brand_vibe: string[];
+  brand_references?: string[];
+  brand_avoids?: string[];
+  brand_description?: string;
 }
 
 export interface PreviewConfig {

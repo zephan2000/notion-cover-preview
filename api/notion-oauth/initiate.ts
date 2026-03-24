@@ -26,17 +26,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing or invalid workspace_id' });
     }
 
-    // Verify workspace exists (it was created during Facebook OAuth initiate)
+    // Verify workspace exists AND has completed Facebook OAuth
+    // This prevents Notion OAuth from being initiated on orphaned/duplicate rows
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabase
       .from('workspaces')
-      .select('id')
+      .select('id, access_token, client_name')
       .eq('id', workspace_id)
       .single();
 
     if (error || !data) {
       return res.status(404).json({ error: 'Workspace not found', detail: error?.message });
+    }
+
+    if (!data.access_token) {
+      return res.status(400).json({
+        error: 'Facebook OAuth not completed',
+        detail: `Workspace "${data.client_name}" (${workspace_id}) has not completed Facebook OAuth yet. Complete Facebook OAuth before initiating Notion OAuth.`,
+      });
     }
 
     const redirectUri = 'https://notion-cover-preview.vercel.app/api/notion-oauth/callback';
