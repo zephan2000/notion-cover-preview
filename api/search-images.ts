@@ -69,11 +69,44 @@ async function generateSearchQueries(
   brandContext: { business_type: string; brand_vibe: string[]; brand_references?: string[]; brand_avoids?: string[]; brand_description?: string } | undefined,
   openrouterKey: string,
 ): Promise<string[]> {
-  const systemPrompt = `You generate search queries for stock image APIs (Unsplash, Pexels, Pixabay).
-Return ONLY a JSON array of 3-5 short keyword queries (2-4 words each) optimized for stock photo search.
-No explanations, no markdown — just the JSON array.
+  const brandBlock = brandContext
+    ? `\n<brand_context>
+${brandContext.brand_description ? `Description: "${brandContext.brand_description}"` : `Business: ${brandContext.business_type}\nVibe: ${brandContext.brand_vibe.join(', ')}`}${!brandContext.brand_description && brandContext.brand_references?.length ? `\nInspired by: ${brandContext.brand_references.join(', ')}` : ''}${brandContext.brand_avoids?.length ? `\nAvoid: ${brandContext.brand_avoids.join(', ')}` : ''}
+</brand_context>
+Use brand context as background flavor, but always prioritize the user's explicit request.\n`
+    : '';
 
-${brandContext ? `Brand context — ${brandContext.brand_description ? `"${brandContext.brand_description}"` : `business: ${brandContext.business_type}, vibe: ${brandContext.brand_vibe.join(', ')}`}.${!brandContext.brand_description && brandContext.brand_references?.length ? ` Inspired by: ${brandContext.brand_references.join(', ')}.` : ''}${brandContext.brand_avoids?.length ? ` AVOID these aesthetics: ${brandContext.brand_avoids.join(', ')}.` : ''} Use this as background flavor but prioritize the user's explicit request.` : ''}`;
+  const systemPrompt = `You are a search-query translator for stock image APIs (Unsplash, Pexels, Pixabay).
+
+Your job: convert a natural-language user request into 3-5 short keyword queries (2-4 words each) that will return relevant stock photos. Return ONLY a JSON array of strings. No explanations, no markdown.
+
+## Critical rules
+
+1. NEGATION & REDUCTION — When the user says "less X", "no X", "not X", "without X", "fewer X", or "remove X":
+   - NEVER include X or synonyms of X in any search query.
+   - Instead, infer what the user DOES want (the implicit opposite or alternative) and search for that.
+   - Example: "less christmas-y" → search for ["modern workspace", "neutral aesthetic", "clean minimal interior"] — NOT anything with christmas, holiday, festive, winter, snow, etc.
+   - Example: "no people" → search for ["empty workspace", "abstract texture", "landscape scenery"] — NOT anything with people, person, woman, man, portrait, etc.
+   - Example: "less women and christmas-y" → the user wants to avoid BOTH women/people AND christmas themes → search for ["abstract geometric pattern", "nature landscape", "minimal architecture"]
+
+2. SUBJECTIVE & AESTHETIC QUERIES — Users often use vague or emotional language. Translate the feeling into concrete visual subjects:
+   - "more professional" → ["corporate office interior", "business workspace", "modern desk setup"]
+   - "warmer" → ["warm tone sunset", "golden hour light", "amber cozy interior"]
+   - "edgier" → ["urban graffiti wall", "dark moody texture", "neon city night"]
+   - "calmer" → ["serene lake landscape", "soft pastel gradient", "zen minimal space"]
+
+3. COMPARATIVE QUERIES — When the user references what they already have ("more like the blue ones", "similar but brighter"), generate queries that capture the desired direction, not the starting point.
+
+4. COMPOUND REQUESTS — Parse multi-part requests. "warm but not corporate" = search for warm casual/creative imagery, excluding office/suit/meeting-room concepts.
+
+5. STOCK PHOTO OPTIMIZATION — These APIs work best with:
+   - Concrete nouns + adjective pairs ("rustic wooden desk", not "professional vibes")
+   - Visual descriptors over abstract concepts
+   - Landscape/horizontal orientation is preferred for cover images
+   - Vary your queries to maximize diversity of results
+
+6. QUERY DIVERSITY — Each query should target a different visual angle of the request. Don't just rephrase — explore different subjects that all satisfy the user's intent.
+${brandBlock}`;
 
   const historyContext = history.length > 0
     ? `\nPrevious searches: ${history.map(h => `"${h.query}" (returned ${h.returned_urls.length} images)`).join(', ')}. Generate DIFFERENT queries this time.`
