@@ -68,7 +68,7 @@ async function generateSearchQueries(
   history: { query: string; returned_urls: string[] }[],
   brandContext: { business_type: string; brand_vibe: string[]; brand_references?: string[]; brand_avoids?: string[]; brand_description?: string } | undefined,
   openrouterKey: string,
-): Promise<string[]> {
+): Promise<{ queries: string[]; debug: { systemPrompt: string; userMessage: string; rawResponse: string } }> {
   const brandBlock = brandContext
     ? `\n<brand_context>
 ${brandContext.brand_description ? `Description: "${brandContext.brand_description}"` : `Business: ${brandContext.business_type}\nVibe: ${brandContext.brand_vibe.join(', ')}`}${!brandContext.brand_description && brandContext.brand_references?.length ? `\nInspired by: ${brandContext.brand_references.join(', ')}` : ''}${brandContext.brand_avoids?.length ? `\nAvoid: ${brandContext.brand_avoids.join(', ')}` : ''}
@@ -112,6 +112,9 @@ ${brandBlock}`;
     ? `\nPrevious searches: ${history.map(h => `"${h.query}" (returned ${h.returned_urls.length} images)`).join(', ')}. Generate DIFFERENT queries this time.`
     : '';
 
+  const userMessage = `User request: "${userQuery}"${historyContext}\n\nReturn JSON array of search queries:`;
+  const mkDebug = (raw: string) => ({ systemPrompt, userMessage, rawResponse: raw });
+
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -123,32 +126,30 @@ ${brandBlock}`;
       max_tokens: 200,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `User request: "${userQuery}"${historyContext}\n\nReturn JSON array of search queries:` },
+        { role: 'user', content: userMessage },
       ],
     }),
   });
 
   if (!res.ok) {
-    // Fallback: just use the user query directly
-    return [userQuery];
+    return { queries: [userQuery], debug: mkDebug(`API error: ${res.status}`) };
   }
 
   const data = await res.json();
   const text = data.choices?.[0]?.message?.content ?? '';
   try {
     const parsed = JSON.parse(text);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(String);
+    if (Array.isArray(parsed) && parsed.length > 0) return { queries: parsed.map(String), debug: mkDebug(text) };
   } catch {
-    // Try extracting JSON array from text
     const match = text.match(/\[[\s\S]*?\]/);
     if (match) {
       try {
         const arr = JSON.parse(match[0]);
-        if (Array.isArray(arr) && arr.length > 0) return arr.map(String);
+        if (Array.isArray(arr) && arr.length > 0) return { queries: arr.map(String), debug: mkDebug(text) };
       } catch { /* fall through */ }
     }
   }
-  return [userQuery];
+  return { queries: [userQuery], debug: mkDebug(text) };
 }
 
 async function assignTags(
@@ -228,8 +229,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing query' });
     }
 
-    // Step 1: Generate optimized search queries
-    const searchQueries = await generateSearchQueries(query, history, brand_context, openrouterKey);
+    // Step 1: Generate optimized search queries (with debug log)
+    const { queries: searchQueries, debug: queryDebug } = await generateSearchQueries(query, history, brand_context, openrouterKey);
 
     // Step 2: Search all available APIs in parallel
     const perQueryCount = Math.ceil((count + 5) / searchQueries.length); // overfetch to account for deduplication
@@ -277,6 +278,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         height: img.height,
       })),
       search_queries_used: searchQueries,
+      _debug: queryDebug,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

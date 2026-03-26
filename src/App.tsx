@@ -249,11 +249,13 @@ function reducer(state: AppState, action: AppAction): AppState {
     case 'SEARCH_RESULTS_RECEIVED': {
       const newIds = action.images.map(img => img.id);
       if (state.searchMode === 'swap') {
-        // Replace unlocked images with new ones, keep locked
+        // Replace unlocked images with new ones, keep locked images but clear lock styling
         const lockedImages = state.images.filter(img => state.lockedIds.includes(img.id));
         return {
           ...state,
           images: [...lockedImages, ...action.images],
+          lockedIds: [],
+          mode: 'browse',
           newImageIds: [...state.newImageIds, ...newIds],
           searchHistory: [...state.searchHistory, { query: action.query, resultCount: action.images.length }],
           searching: false,
