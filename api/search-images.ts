@@ -49,18 +49,22 @@ async function searchUnsplash(query: string, perPage: number, accessKey: string)
 }
 
 async function searchPixabay(query: string, perPage: number, apiKey: string): Promise<StockImage[]> {
-  const res = await fetch(
-    `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&orientation=horizontal&image_type=photo&min_width=1200`,
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.hits ?? []).map((p: Record<string, unknown>) => ({
-    url: p.largeImageURL as string,
-    tags: [],
-    source: 'pixabay',
-    width: (p.imageWidth as number) ?? 1200,
-    height: (p.imageHeight as number) ?? 800,
-  }));
+  try {
+    const res = await fetch(
+      `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${perPage}&orientation=horizontal&image_type=photo&min_width=1200`,
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.hits ?? []).map((p: Record<string, unknown>) => ({
+      url: p.webformatURL as string,
+      tags: [],
+      source: 'pixabay',
+      width: (p.webformatWidth as number) ?? 640,
+      height: (p.webformatHeight as number) ?? 400,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function generateSearchQueries(
