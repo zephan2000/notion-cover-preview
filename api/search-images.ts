@@ -126,7 +126,7 @@ ${brandBlock}`;
       'Authorization': `Bearer ${openrouterKey}`,
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-haiku-4-5-20251001',
+      model: 'anthropic/claude-haiku-4.5',
       max_tokens: 200,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -172,7 +172,7 @@ async function assignTags(
       'Authorization': `Bearer ${openrouterKey}`,
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-haiku-4-5-20251001',
+      model: 'anthropic/claude-haiku-4.5',
       max_tokens: 1000,
       messages: [
         { role: 'system', content: `Assign 1-3 tags to each image based on its URL and the search context.
