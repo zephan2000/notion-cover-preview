@@ -33,18 +33,18 @@ export const RegenerateConfirmView = ({ state, dispatch, onConfirm }: Props) => 
             </h1>
             <p className="text-sm text-muted-foreground">
               Your {keptImages.length} kept image{keptImages.length !== 1 ? 's' : ''} and regeneration
-              request have been sent to Manus.
+              request have been sent to Claude.
             </p>
             {!isDemo && (
               <p className="text-sm text-muted-foreground mt-2">
-                Head back to Manus and say{' '}
+                Head back to Claude and say{' '}
                 <span className="inline-block px-2 py-0.5 rounded-md bg-foreground/10 text-foreground font-medium text-sm">
                   I've submitted my Keep & Regenerate request
                 </span>
               </p>
             )}
             <p className="text-sm text-muted-foreground mt-2">
-              Manus will keep your favourite images and find {regenerateCount} new
+              Claude will keep your favourite images and find {regenerateCount} new
               option{regenerateCount !== 1 ? 's' : ''} to replace the rest.
             </p>
           </>
@@ -55,7 +55,7 @@ export const RegenerateConfirmView = ({ state, dispatch, onConfirm }: Props) => 
             </h1>
             <p className="text-sm text-muted-foreground">
               You're keeping <span className="text-green-400 font-medium">{keptImages.length}</span> image{keptImages.length !== 1 ? 's' : ''} and
-              asking Manus to find <span className="text-foreground font-medium">{regenerateCount}</span> new
+              asking Claude to find <span className="text-foreground font-medium">{regenerateCount}</span> new
               option{regenerateCount !== 1 ? 's' : ''} for the rest.
             </p>
           </>
@@ -114,12 +114,12 @@ export const RegenerateConfirmView = ({ state, dispatch, onConfirm }: Props) => 
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Sending to Manus...
+                Sending to Claude...
               </>
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                {isDemo ? 'Confirm (Demo)' : 'Confirm & Send to Manus'}
+                {isDemo ? 'Confirm (Demo)' : 'Confirm & Send to Claude'}
               </>
             )}
           </button>

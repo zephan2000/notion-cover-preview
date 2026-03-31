@@ -59,7 +59,7 @@ export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
             <p className="text-sm text-muted-foreground">Your selections are saved.</p>
             {!isDemo && (
               <p className="text-sm text-muted-foreground mt-1">
-                Head back to Manus and say{' '}
+                Head back to Claude and say{' '}
                 <span className="inline-block px-2 py-0.5 rounded-md bg-foreground/10 text-foreground font-medium text-sm">
                   Done
                 </span>
@@ -156,7 +156,7 @@ export const FinalizeView = ({ state, dispatch, onConfirm }: Props) => {
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                {isDemo ? 'Confirm (Demo)' : 'Confirm & Send to Manus'}
+                {isDemo ? 'Confirm (Demo)' : 'Confirm & Send to Claude'}
               </>
             )}
           </button>

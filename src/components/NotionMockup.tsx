@@ -198,7 +198,7 @@ export const NotionMockup = ({
             <div className="px-6 py-3 bg-accent text-muted-foreground text-xs leading-relaxed cursor-pointer">
               This is a visual reference only. Notion doesn't support programmatic
               repositioning — you'll need to apply this manually. We'll save your
-              settings so Manus can guide you.
+              settings so Claude can guide you.
             </div>
           </motion.div>
         )}
