@@ -251,9 +251,15 @@ function reducer(state: AppState, action: AppAction): AppState {
       if (state.searchMode === 'swap') {
         // Replace unlocked images with new ones, keep locked images but clear lock styling
         const lockedImages = state.images.filter(img => state.lockedIds.includes(img.id));
+        const lockedIdSet = new Set(state.lockedIds);
+        // Clear selections that referenced unlocked (now removed) images
+        const cleanedSelectedIds = state.selectedIds.map(id =>
+          id && !lockedIdSet.has(id) ? null : id
+        );
         return {
           ...state,
           images: [...lockedImages, ...action.images],
+          selectedIds: cleanedSelectedIds,
           lockedIds: [],
           mode: 'browse',
           newImageIds: [...state.newImageIds, ...newIds],
